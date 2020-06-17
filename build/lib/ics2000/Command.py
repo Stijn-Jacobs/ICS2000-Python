@@ -1,5 +1,5 @@
 import numpy as np
-from Cryptographer import *
+from .Cryptographer import *
 
 
 class Command:

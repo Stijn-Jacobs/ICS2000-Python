@@ -1,8 +1,10 @@
+import enum
 from typing import Optional
 import requests
 import json
 import ast
-from Command import *
+
+from ics2000.Command import *
 
 base_url = "https://trustsmartcloud2.com/ics2000_api/"
 
@@ -46,7 +48,18 @@ class Hub:
         resp = requests.get(url, params=params)
         self._devices = []
         for device in json.loads(resp.text):
-            self._devices.append(Device(device["data"], self))
+            decrypted = json.loads(decrypt(device["data"], self.aes))
+            if "module" in decrypted and "info" in decrypted["module"]:
+                decrypted = decrypted["module"]
+                dev = DeviceType(decrypted["device"])
+                name = decrypted["name"]
+                entityid = decrypted["id"]
+                if dev == DeviceType.LAMP:
+                    self._devices.append(Device(name, entityid, self))
+                if dev == DeviceType.DIMMER:
+                    self._devices.append(Dimmer(name, entityid, self))
+                if dev == DeviceType.OPENCLOSE:
+                    self._devices.append(Device(name, entityid, self))
 
     def devices(self):
         return self._devices
@@ -65,29 +78,46 @@ class Hub:
         cmd = self.getcmdswitch(entity, True)
         self.sendcommand(cmd.getcommand())
 
+    def dim(self, entity, level):
+        cmd = self.getcmddim(entity, level)
+        self.sendcommand(cmd.getcommand())
+
     def getcmdswitch(self, entity, on: bool) -> Command:
-        cmd = Command()
-        cmd.setmac(self.mac)
-        cmd.settype(128)
-        cmd.setmagic()
-        cmd.setentityid(entity)
+        cmd = self.simplecmd(entity)
         cmd.setdata(
             "{\"module\":{\"id\":" + str(entity) + ",\"function\":0,\"value\":" + (str(1) if on else str(0)) + "}}",
             self.aes)
         return cmd
 
+    def getcmddim(self, entity, level) -> Command:
+        cmd = self.simplecmd(entity)
+        cmd.setdata(
+            "{\"module\":{\"id\":" + str(entity) + ",\"function\":1,\"value\":" + str(level) + "}}",
+            self.aes)
+        return cmd
+
+    def simplecmd(self, entityid):
+        cmd = Command()
+        cmd.setmac(self.mac)
+        cmd.settype(128)
+        cmd.setmagic()
+        cmd.setentityid(entityid)
+        return cmd
+
+
+class DeviceType(enum.Enum):
+    LAMP = 1
+    DIMMER = 2
+    OPENCLOSE = 3
+
 
 class Device:
 
-    def __init__(self, data, hb):
-        self._data = data
+    def __init__(self, name, id, hb):
         self._hub = hb
-        decrypted = json.loads(decrypt(data, hb.aes))
-        if "module" in decrypted:
-            decrypted = decrypted["module"]
-            self._name = decrypted["name"]
-            self._id = decrypted["id"]
-            print(str(self._name) + " : " + str(self._id))
+        self._name = name
+        self._id = id
+        print(str(self._name) + " : " + str(self._id))
 
     def name(self):
         return self._name
@@ -101,6 +131,15 @@ class Device:
         self._hub.sendcommand(cmd.getcommand())
 
 
+class Dimmer(Device):
+
+    def dim(self, level):
+        if level < 0 or level > 15:
+            return
+        cmd = super()._hub.getcmddim(super()._hub, level)
+        super()._hub.sendcommand(cmd.getcommand())
+
+
 def hub(mac, email, password) -> Optional[Hub]:
     url = base_url + "/gateway.php"
     params = {"action": "check", "email": email, "mac": mac.replace(":", ""), "password_hash": password}
@@ -109,4 +148,3 @@ def hub(mac, email, password) -> Optional[Hub]:
         if ast.literal_eval(resp.text)[1] == "true":
             return Hub(mac, email, password)
     return
-

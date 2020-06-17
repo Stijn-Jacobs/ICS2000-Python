@@ -2,7 +2,7 @@ from typing import Optional
 import requests
 import json
 import ast
-from Command import *
+from .Command import *
 
 base_url = "https://trustsmartcloud2.com/ics2000_api/"
 
@@ -82,6 +82,8 @@ class Device:
     def __init__(self, data, hb):
         self._data = data
         self._hub = hb
+        self._name = None
+        self._id = None
         decrypted = json.loads(decrypt(data, hb.aes))
         if "module" in decrypted:
             decrypted = decrypted["module"]
@@ -93,23 +95,12 @@ class Device:
         return self._name
 
     def turnoff(self):
-        cmd = self.getcmdswitch(False)
+        cmd = self._hub.getcmdswitch(self._id, False)
         self._hub.sendcommand(cmd.getcommand())
 
     def turnon(self):
-        cmd = self.getcmdswitch(True)
+        cmd = self._hub.getcmdswitch(self._id, True)
         self._hub.sendcommand(cmd.getcommand())
-
-    def getcmdswitch(self, on: bool) -> Command:
-        cmd = Command()
-        cmd.setmac(self._hub.mac)
-        cmd.settype(128)
-        cmd.setmagic()
-        cmd.setentityid(self._id)
-        cmd.setdata(
-            "{\"module\":{\"id\":" + str(self._id) + ",\"function\":0,\"value\":" + (str(1) if on else str(0)) + "}}",
-            self._hub.aes)
-        return cmd
 
 
 def hub(mac, email, password) -> Optional[Hub]:

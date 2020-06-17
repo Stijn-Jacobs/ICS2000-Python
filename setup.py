@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="ics2000",
-    version="0.0.1",
+    version="0.0.7",
     author="Stijn Jacobs",
     author_email="stijn.jacobs33@gmail.com",
     description="trust ics2000 bridge",

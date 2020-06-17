@@ -1,3 +1,3 @@
-from Core import *
-from Cryptographer import *
-from Command import *
+from .Core import *
+from .Command import *
+from .Cryptographer import *
