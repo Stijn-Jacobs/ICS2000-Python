@@ -1,0 +1,10 @@
+README.md
+setup.py
+ics2000/Command.py
+ics2000/Core.py
+ics2000/Cryptographer.py
+ics2000/__init__.py
+ics2000.egg-info/PKG-INFO
+ics2000.egg-info/SOURCES.txt
+ics2000.egg-info/dependency_links.txt
+ics2000.egg-info/top_level.txt
