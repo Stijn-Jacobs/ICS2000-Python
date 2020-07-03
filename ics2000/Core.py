@@ -24,6 +24,7 @@ class Hub:
         self.loginuser()
         self.pulldevices()
 
+
     def loginuser(self):
         print("Logging in user")
         url = base_url + "/account.php"
@@ -96,6 +97,20 @@ class Hub:
             self.aes)
         return cmd
 
+    def getlampstatus(self, entity) -> Optional[bool]:
+        url = base_url + "/entity.php"
+        params = {"action": "get-multiple", "email": self._email, "mac": self.mac.replace(":", ""),
+                  "password_hash": self._password, "home_id": self._homeId, "entity_id": "[" + str(entity) + "]"}
+        resp = requests.get(url, params=params)
+        arr = json.loads(resp.text)
+        if len(arr) == 1 and "status" in arr[0] and arr[0]["status"] is not None:
+            obj = arr[0]
+            dcrpt = json.loads(decrypt(obj["status"], self.aes))
+            return dcrpt["module"]["functions"][0] != 0
+        else:
+            return None
+
+
     def simplecmd(self, entityid):
         cmd = Command()
         cmd.setmac(self.mac)
@@ -129,6 +144,9 @@ class Device:
     def turnon(self):
         cmd = self._hub.getcmdswitch(self._id, True)
         self._hub.sendcommand(cmd.getcommand())
+
+    def getstatus(self) -> Optional[bool]:
+        return self._hub.getlampstatus(self._id)
 
 
 class Dimmer(Device):
