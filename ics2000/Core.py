@@ -55,6 +55,7 @@ class Hub:
                 entityid = decrypted["id"]
                 if decrypted["device"] not in DeviceType.value2member_map_:
                     self._devices.append(Device(name, entityid, self))
+                    return
                 dev = DeviceType(decrypted["device"])
                 if dev == DeviceType.LAMP:
                     self._devices.append(Device(name, entityid, self))
