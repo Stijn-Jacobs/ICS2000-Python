@@ -24,7 +24,6 @@ class Hub:
         self.loginuser()
         self.pulldevices()
 
-
     def loginuser(self):
         print("Logging in user")
         url = base_url + "/account.php"
@@ -83,7 +82,7 @@ class Hub:
         cmd = self.getcmddim(entity, level)
         self.sendcommand(cmd.getcommand())
 
-    def getcmdswitch(self, entity, on: bool) -> Command:
+    def getcmdswitch(self, entity, on) -> Command:
         cmd = self.simplecmd(entity)
         cmd.setdata(
             "{\"module\":{\"id\":" + str(entity) + ",\"function\":0,\"value\":" + (str(1) if on else str(0)) + "}}",
@@ -109,7 +108,6 @@ class Hub:
             return dcrpt["module"]["functions"][0] != 0
         else:
             return None
-
 
     def simplecmd(self, entityid):
         cmd = Command()
