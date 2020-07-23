@@ -1,5 +1,4 @@
 import base64
-import sys
 
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad

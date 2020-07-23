@@ -158,7 +158,7 @@ class Dimmer(Device):
         super()._hub.sendcommand(cmd.getcommand())
 
 
-def hub(mac, email, password) -> Optional[Hub]:
+def get_hub(mac, email, password) -> Optional[Hub]:
     url = base_url + "/gateway.php"
     params = {"action": "check", "email": email, "mac": mac.replace(":", ""), "password_hash": password}
     resp = requests.get(url, params=params)
