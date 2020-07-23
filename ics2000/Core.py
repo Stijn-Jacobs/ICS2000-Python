@@ -51,9 +51,11 @@ class Hub:
             decrypted = json.loads(decrypt(device["data"], self.aes))
             if "module" in decrypted and "info" in decrypted["module"]:
                 decrypted = decrypted["module"]
-                dev = DeviceType(decrypted["device"])
                 name = decrypted["name"]
                 entityid = decrypted["id"]
+                if decrypted["device"] not in DeviceType.value2member_map_:
+                    self._devices.append(Device(name, entityid, self))
+                dev = DeviceType(decrypted["device"])
                 if dev == DeviceType.LAMP:
                     self._devices.append(Device(name, entityid, self))
                 if dev == DeviceType.DIMMER:
