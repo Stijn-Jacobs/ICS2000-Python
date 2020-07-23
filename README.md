@@ -2,7 +2,7 @@
 
 Example usage:
 ```Python
-hub = hub("Mac address of ics2000", "email", "password")
+hub = get_hub("Mac address of ics2000", "email", "password")
 ```
 
 This will also list the devices connected
