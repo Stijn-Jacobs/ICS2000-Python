@@ -32,7 +32,7 @@ class Hub:
         self._homeId = -1
         self._devices = []
         self.loginuser()
-        self.pulldevices()
+        # self.pulldevices()
 
     def loginuser(self):
         print("Logging in user")
