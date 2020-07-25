@@ -5,6 +5,7 @@ import json
 import ast
 
 from ics2000.Command import *
+from ics2000.Utils import *
 
 base_url = "https://trustsmartcloud2.com/ics2000_api/"
 
@@ -62,7 +63,7 @@ class Hub:
                 decrypted = decrypted["module"]
                 name = decrypted["name"]
                 entityid = decrypted["id"]
-                if decrypted["device"] not in DeviceType.value2member_map_:
+                if decrypted["device"] not in DeviceType._value2member_map_:
                     self._devices.append(Device(name, entityid, self))
                     return
                 dev = DeviceType(decrypted["device"])

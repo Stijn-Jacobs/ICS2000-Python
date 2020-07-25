@@ -14,3 +14,4 @@ hub.turnoff(id of device to turn off)
 hub.getlampstatus(id of device)
 ```
 
+Heavily WIP
