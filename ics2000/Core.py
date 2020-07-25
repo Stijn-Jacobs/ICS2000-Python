@@ -9,6 +9,15 @@ from ics2000.Command import *
 base_url = "https://trustsmartcloud2.com/ics2000_api/"
 
 
+def constraint_int(inp, min, max) -> int:
+    if inp < min:
+        return min
+    elif inp > max:
+        return max
+    else:
+        return inp
+
+
 class Hub:
     aes = None
     mac = None
@@ -85,6 +94,18 @@ class Hub:
         cmd = self.getcmddim(entity, level)
         self.sendcommand(cmd.getcommand())
 
+    def zigbee_color_temp(self, entity, color_temp):
+        cmd = self.get_zigbee_temp_cmd(entity, color_temp)
+        self.sendcommand(cmd.getcommand())
+
+    def zigbee_dim(self, entity, dim_lvl):
+        cmd = self.get_zigbee_dim_cmd(entity, dim_lvl)
+        self.sendcommand(cmd.getcommand())
+
+    def zigbee_switch(self, entity, power):
+        cmd = self.get_zigbee_power(entity, power)
+        self.sendcommand(cmd.getcommand())
+
     def getcmdswitch(self, entity, on) -> Command:
         cmd = self.simplecmd(entity)
         cmd.setdata(
@@ -111,6 +132,29 @@ class Hub:
             return dcrpt["module"]["functions"][0] != 0
         else:
             return None
+
+    def get_zigbee_temp_cmd(self, entity, color_temp):
+        color_temp = constraint_int(color_temp, 0, 600)
+        cmd = self.simplecmd(entity)
+        cmd.setdata(
+            "{\"module\":{\"id\":" + str(entity) + ",\"function\":9,\"value\":" + str(color_temp) + "}}",
+            self.aes)
+        return cmd
+
+    def get_zigbee_dim_cmd(self, entity, dim_lvl):
+        dim_lvl = constraint_int(dim_lvl, 1, 254)
+        cmd = self.simplecmd(entity)
+        cmd.setdata(
+            "{\"module\":{\"id\":" + str(entity) + ",\"function\":4,\"value\":" + str(dim_lvl) + "}}",
+            self.aes)
+        return cmd
+
+    def get_zigbee_power(self, entity, on):
+        cmd = self.simplecmd(entity)
+        cmd.setdata(
+            "{\"module\":{\"id\":" + str(entity) + ",\"function\":3,\"value\":" + (str(1) if on else str(0)) + "}}",
+            self.aes)
+        return cmd
 
     def simplecmd(self, entityid):
         cmd = Command()
