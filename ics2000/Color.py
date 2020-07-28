@@ -7,7 +7,7 @@ def rgb_constrained(inp) -> int:
     elif inp > 255:
         return 255
     else:
-        return inp
+        return round(inp)
 
 
 class rgb:
@@ -48,11 +48,12 @@ class rgb:
 
     def serialize(self):
         xyx = self.to_xyz()
-        y2 = xyx.y
-        x = (xyx.x / (xyx.y + xyx.x + xyx.z))
-        y = (xyx.y / (xyx.z + xyx.y + xyx.z))
+        y2 = 1
+        x = xyx.x / (xyx.x + y2 + xyx.z)
+        y = 1 / (xyx.x + y2 + xyx.z)
         f1 = int(x * MAX_UINT_16)
         f2 = int(y * MAX_UINT_16)
+        print("saving: " + str(f1) + " : " + str(f2))
         arr = bytearray(4)
         insertint16(arr, f1 * 100, 0)
         insertint16(arr, f2 * 100, 2)

@@ -2,9 +2,7 @@ certifi==2020.4.5.2
 cffi==1.14.0
 chardet==3.0.4
 colormath==3.0.0
-cryptography==3.0
 decorator==4.4.2
-ics2000bridge==0.0.3
 idna==2.10
 Naked==0.1.31
 networkx==2.4

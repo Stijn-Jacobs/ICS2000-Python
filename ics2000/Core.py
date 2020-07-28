@@ -1,20 +1,19 @@
 import enum
-from typing import Optional
 import requests
 import json
 import ast
 
 from ics2000.Command import *
-from ics2000.Utils import *
+from ics2000.Devices import *
 
 base_url = "https://trustsmartcloud2.com/ics2000_api/"
 
 
-def constraint_int(inp, min, max) -> int:
-    if inp < min:
-        return min
-    elif inp > max:
-        return max
+def constraint_int(inp, min_val, max_val) -> int:
+    if inp < min_val:
+        return min_val
+    elif inp > max_val:
+        return max_val
     else:
         return inp
 
@@ -32,7 +31,7 @@ class Hub:
         self._homeId = -1
         self._devices = []
         self.loginuser()
-        # self.pulldevices()
+        self.pulldevices()
 
     def loginuser(self):
         print("Logging in user")
@@ -63,7 +62,9 @@ class Hub:
                 decrypted = decrypted["module"]
                 name = decrypted["name"]
                 entityid = decrypted["id"]
-                if decrypted["device"] not in DeviceType._value2member_map_:
+
+                devices = [item.value for item in DeviceType]
+                if decrypted["device"] not in devices:
                     self._devices.append(Device(name, entityid, self))
                     return
                 dev = DeviceType(decrypted["device"])
@@ -84,44 +85,32 @@ class Hub:
         requests.get(url, params=params)
 
     def turnoff(self, entity):
-        cmd = self.getcmdswitch(entity, False)
+        cmd = self.simplecmd(entity, 0, 0)
         self.sendcommand(cmd.getcommand())
 
     def turnon(self, entity):
-        cmd = self.getcmdswitch(entity, True)
+        cmd = self.simplecmd(entity, 0, 1)
         self.sendcommand(cmd.getcommand())
 
     def dim(self, entity, level):
-        cmd = self.getcmddim(entity, level)
+        cmd = self.simplecmd(entity, 1, level)
         self.sendcommand(cmd.getcommand())
 
     def zigbee_color_temp(self, entity, color_temp):
-        cmd = self.get_zigbee_temp_cmd(entity, color_temp)
+        color_temp = constraint_int(color_temp, 0, 600)
+        cmd = self.simplecmd(entity, 9, color_temp)
         self.sendcommand(cmd.getcommand())
 
     def zigbee_dim(self, entity, dim_lvl):
-        cmd = self.get_zigbee_dim_cmd(entity, dim_lvl)
+        dim_lvl = constraint_int(dim_lvl, 1, 254)
+        cmd = self.simplecmd(entity, 4, dim_lvl)
         self.sendcommand(cmd.getcommand())
 
     def zigbee_switch(self, entity, power):
-        cmd = self.get_zigbee_power(entity, power)
+        cmd = self.simplecmd(entity, 3, (str(1) if power else str(0)))
         self.sendcommand(cmd.getcommand())
 
-    def getcmdswitch(self, entity, on) -> Command:
-        cmd = self.simplecmd(entity)
-        cmd.setdata(
-            "{\"module\":{\"id\":" + str(entity) + ",\"function\":0,\"value\":" + (str(1) if on else str(0)) + "}}",
-            self.aes)
-        return cmd
-
-    def getcmddim(self, entity, level) -> Command:
-        cmd = self.simplecmd(entity)
-        cmd.setdata(
-            "{\"module\":{\"id\":" + str(entity) + ",\"function\":1,\"value\":" + str(level) + "}}",
-            self.aes)
-        return cmd
-
-    def getlampstatus(self, entity) -> Optional[bool]:
+    def get_device_status(self, entity) -> []:
         url = base_url + "/entity.php"
         params = {"action": "get-multiple", "email": self._email, "mac": self.mac.replace(":", ""),
                   "password_hash": self._password, "home_id": self._homeId, "entity_id": "[" + str(entity) + "]"}
@@ -130,39 +119,25 @@ class Hub:
         if len(arr) == 1 and "status" in arr[0] and arr[0]["status"] is not None:
             obj = arr[0]
             dcrpt = json.loads(decrypt(obj["status"], self.aes))
-            return dcrpt["module"]["functions"][0] != 0
-        else:
-            return None
+            if "module" in dcrpt and "functions" in dcrpt["module"]:
+                return dcrpt["module"]["functions"]
+        return []
 
-    def get_zigbee_temp_cmd(self, entity, color_temp):
-        color_temp = constraint_int(color_temp, 0, 600)
-        cmd = self.simplecmd(entity)
-        cmd.setdata(
-            "{\"module\":{\"id\":" + str(entity) + ",\"function\":9,\"value\":" + str(color_temp) + "}}",
-            self.aes)
-        return cmd
+    def getlampstatus(self, entity) -> Optional[bool]:
+        status = self.get_device_status(entity)
+        if len(status) >= 1:
+            return True if status[0] == 1 else False
+        return False
 
-    def get_zigbee_dim_cmd(self, entity, dim_lvl):
-        dim_lvl = constraint_int(dim_lvl, 1, 254)
-        cmd = self.simplecmd(entity)
-        cmd.setdata(
-            "{\"module\":{\"id\":" + str(entity) + ",\"function\":4,\"value\":" + str(dim_lvl) + "}}",
-            self.aes)
-        return cmd
-
-    def get_zigbee_power(self, entity, on):
-        cmd = self.simplecmd(entity)
-        cmd.setdata(
-            "{\"module\":{\"id\":" + str(entity) + ",\"function\":3,\"value\":" + (str(1) if on else str(0)) + "}}",
-            self.aes)
-        return cmd
-
-    def simplecmd(self, entityid):
+    def simplecmd(self, entity, function, value):
         cmd = Command()
         cmd.setmac(self.mac)
         cmd.settype(128)
         cmd.setmagic()
-        cmd.setentityid(entityid)
+        cmd.setentityid(entity)
+        cmd.setdata(
+            "{\"module\":{\"id\":" + str(entity) + ",\"function\":" + str(function) + ",\"value\":" + str(value) + "}}",
+            self.aes)
         return cmd
 
 
@@ -170,38 +145,6 @@ class DeviceType(enum.Enum):
     LAMP = 1
     DIMMER = 2
     OPENCLOSE = 3
-
-
-class Device:
-
-    def __init__(self, name, id, hb):
-        self._hub = hb
-        self._name = name
-        self._id = id
-        print(str(self._name) + " : " + str(self._id))
-
-    def name(self):
-        return self._name
-
-    def turnoff(self):
-        cmd = self._hub.getcmdswitch(self._id, False)
-        self._hub.sendcommand(cmd.getcommand())
-
-    def turnon(self):
-        cmd = self._hub.getcmdswitch(self._id, True)
-        self._hub.sendcommand(cmd.getcommand())
-
-    def getstatus(self) -> Optional[bool]:
-        return self._hub.getlampstatus(self._id)
-
-
-class Dimmer(Device):
-
-    def dim(self, level):
-        if level < 0 or level > 15:
-            return
-        cmd = super()._hub.getcmddim(super()._hub, level)
-        super()._hub.sendcommand(cmd.getcommand())
 
 
 def get_hub(mac, email, password) -> Optional[Hub]:
@@ -212,3 +155,4 @@ def get_hub(mac, email, password) -> Optional[Hub]:
         if ast.literal_eval(resp.text)[1] == "true":
             return Hub(mac, email, password)
     return
+
