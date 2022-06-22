@@ -6,7 +6,7 @@ decorator==4.4.2
 idna==2.10
 Naked==0.1.31
 networkx==2.4
-numpy==1.18.5
+numpy==1.22.0
 pycparser==2.20
 pycryptodome==3.9.7
 PyYAML==5.4
